@@ -200,6 +200,11 @@ Modes combine and run in order: map → trace → hunt → teach. This matches t
 
 # Hunt for variants, write output for validator to consume
 /understand ./src --hunt "cursor.execute with f-string" --out .out/my-validation/
+
+# Map, then triage the whole surface: one validation subagent per candidate,
+# file only the verified, operator-approved bugs
+/understand ./src --map
+/triage ./src
 ```
 
 ## Integration with Validation Pipeline

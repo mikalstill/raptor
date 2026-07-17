@@ -43,6 +43,7 @@ When a `/command` fires:
 /exploit /patch - Generate PoCs and fixes (beta)
 /validate - Exploitability validation pipeline (see below)
 /understand - Code understanding: map attack surface, trace flows, hunt variants (see below)
+/triage - Investigate a mapped attack surface with parallel subagents, then file only verified, operator-approved bugs (see below)
 /diagram - Generate Mermaid visual maps from /understand or /validate output (see below)
 /annotate - Per-function prose annotations (manual or LLM-emitted) attached to source files
 
@@ -246,6 +247,26 @@ The `/understand` command provides deep, adversarial code comprehension for secu
 
 ---
 
+## ATTACK-SURFACE TRIAGE
+
+The `/triage` command turns a mapped attack surface into filed, verified bugs. It is the successor step to `/understand --map`: map enumerates candidates, triage proves or kills each one and files the survivors.
+
+**Usage:** `/triage [<target>]`
+
+**Execution model — you are the coordinator, not the investigator:**
+- The main session holds the plan and the verdicts and does **not** read the target's source. All source tracing happens inside subagents — one read-only `general-purpose` subagent per candidate, launched in parallel. This keeps context lean enough to work through a whole surface in one session.
+- **[TRIAGE-0]** Reuse a fresh `context-map.json`, else run `/understand <target> --map` first. Build the work queue from `sink_details`, attacker-controlled `entry_points`, and `unchecked_flows`.
+- **[TRIAGE-1]** Fan out one subagent per candidate. Each traces to source — **reads the callees, never infers from names** — writes `flow-trace-<id>.json`, and returns a compact CONFIRMED / DISPROVEN / INCONCLUSIVE verdict with `file:line` evidence.
+- **[TRIAGE-2]** Adjudicate: re-verify each CONFIRMED verdict against its cited `file:line` before trusting it; record defending checks for DISPROVEN.
+- **[TRIAGE-3]** File — **ALWAYS STAGE FOR APPROVAL.** Nothing reaches `gh` without an explicit operator go-ahead. Exploitable → `bug`; real-but-backstopped → `enhancement`; both `security-audit`.
+- **[TRIAGE-4]** Re-render diagrams, present a consolidated verdict table.
+
+**Skill:** `.claude/skills/surface-triage/SKILL.md` (workflow, subagent contract, filing policy). Subagents follow `.claude/skills/code-understanding/trace.md`.
+
+**Why:** name-level triage files false positives — the defending check is usually one or two hops downstream of the flagged line. Requiring each subagent to read the callees, and the coordinator to re-verify before filing, is what turns "unsanitized" leads into real, evidence-backed bugs.
+
+---
+
 ## DIAGRAM GENERATION
 
 The `/diagram` command generates Mermaid visual maps from `/understand` and `/validate` JSON outputs, giving researchers a visual representation of code flows, sources, sinks, trust boundaries, attack trees, and attack paths. Consider this 
@@ -307,6 +328,7 @@ The `/annotate` command attaches free-form prose to individual functions, stored
 **When errors occur:** Load `tiers/recovery.md` (recovery protocol)
 **When requested:** Load `tiers/personas/[name].md` (expert personas)
 **When running /understand:** Load `.claude/skills/code-understanding/SKILL.md` (gates, config) plus the relevant mode file: `map.md`, `trace.md`, `hunt.md`, or `teach.md`
+**When triaging a mapped surface (/triage):** Load `.claude/skills/surface-triage/SKILL.md` (coordinator workflow, subagent contract, always-stage-for-approval filing policy)
 
 ---
 

@@ -12,7 +12,7 @@ Output "RAPTOR commands:" then list all available RAPTOR slash commands grouped 
 Find vulnerabilities: agentic, codeql, fuzz, scan, sca, web.
 
 **Analyse**
-Go deeper: binary, crash-analysis, describe, frida, threat-model, understand, validate.
+Go deeper: binary, crash-analysis, describe, frida, threat-model, triage, understand, validate.
 
 **Exploit & fix**
 Act on findings: cve-diff, exploit, patch.
